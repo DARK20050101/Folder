@@ -200,6 +200,9 @@ class MainWindow(QMainWindow):
         clear_cache_act = QAction("Clear &Cache", self)
         clear_cache_act.triggered.connect(self._on_clear_cache)
         view_menu.addAction(clear_cache_act)
+        set_cache_dir_act = QAction("Set Cache &Directory…", self)
+        set_cache_dir_act.triggered.connect(self._on_set_cache_dir)
+        view_menu.addAction(set_cache_dir_act)
 
         # Help menu
         help_menu = menu.addMenu("&Help")
@@ -339,6 +342,21 @@ class MainWindow(QMainWindow):
     def _on_clear_cache(self) -> None:
         self._cache.clear_all()
         QMessageBox.information(self, "Cache Cleared", "All cached scan data has been removed.")
+
+    def _on_set_cache_dir(self) -> None:
+        new_dir = QFileDialog.getExistingDirectory(
+            self,
+            "Select Cache Directory",
+            str(self._cache.cache_dir),
+        )
+        if new_dir:
+            self._cache = ScanCache(cache_dir=new_dir)
+            QMessageBox.information(
+                self,
+                "Cache Directory Updated",
+                f"Cache directory set to:\n{new_dir}\n\n"
+                "Previously cached scans from the old directory are no longer used.",
+            )
 
     def _export(self, fmt: str) -> None:
         if not self._current_root:

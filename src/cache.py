@@ -10,8 +10,18 @@ from typing import Optional
 
 from .models import FileNode
 
-# Default directory for cache files (relative to user home)
-_DEFAULT_CACHE_DIR = Path.home() / ".diskexplorer" / "cache"
+# Default directory for cache files: ``cache/`` folder next to the program.
+# Falls back to the user home directory if the program directory is not writable.
+def _get_default_cache_dir() -> Path:
+    app_cache = Path(__file__).resolve().parents[1] / "cache"
+    try:
+        app_cache.mkdir(parents=True, exist_ok=True)
+        return app_cache
+    except OSError:
+        return Path.home() / ".diskexplorer" / "cache"
+
+
+_DEFAULT_CACHE_DIR = _get_default_cache_dir()
 _CACHE_VERSION = 1
 
 
@@ -26,6 +36,11 @@ class ScanCache:
     def __init__(self, cache_dir: Optional[Path] = None) -> None:
         self._cache_dir = Path(cache_dir) if cache_dir else _DEFAULT_CACHE_DIR
         self._cache_dir.mkdir(parents=True, exist_ok=True)
+
+    @property
+    def cache_dir(self) -> Path:
+        """The directory where cache files are stored."""
+        return self._cache_dir
 
     # ------------------------------------------------------------------
     # Public API
