@@ -9,8 +9,12 @@ storage space.
 - **Tree-based directory view** – hierarchical display of folders and files
   with sizes, percentages, modification times and file counts
 - **Pie & bar charts** – visual size distribution for any selected directory
+- **Manual compare mode** – click to compare current scan with previous cache and inspect level-1/level-2 folder size changes
 - **Fast multi-threaded scanning** – uses a thread pool for large directories
 - **Result caching** – persists scan results so re-opening is instant
+- **Chinese / English UI** – switch language from the menu for easier usage
+- **Pixel-art themes** – switch between meadow/dungeon pixel styles in the Theme menu
+- **Custom cover image** – replace the initial right-side cover via Theme menu and auto-remember it for next launch
 - **Export reports** – CSV, JSON and standalone HTML output
 - **Right-click context menu** – open in file manager, copy path
 - **Zero cloud dependency** – all data stays on your machine

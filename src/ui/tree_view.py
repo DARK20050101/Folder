@@ -25,14 +25,22 @@ class FileNodeModel(QAbstractItemModel):
     COL_SIZE_BAR = 2
     COL_FILES = 3
     COL_MOD_TIME = 4
-    COLUMNS = ["Name", "Size", "Usage %", "Files", "Modified"]
+    _COLUMNS_BY_LANG = {
+        "en": ["Name", "Size", "Usage %", "Files", "Modified"],
+        "zh": ["名称", "大小", "占比", "文件数", "修改时间"],
+    }
 
     def __init__(self, root: Optional[FileNode] = None, parent=None) -> None:
         super().__init__(parent)
         self._root = root
+        self._language = "en"
         self._parent_map: dict = {}  # child_id -> parent FileNode
         if root:
             self._build_parent_map(root, None)
+
+    def set_language(self, language: str) -> None:
+        self._language = "zh" if language == "zh" else "en"
+        self.headerDataChanged.emit(Qt.Orientation.Horizontal, 0, self.columnCount() - 1)
 
     def set_root(self, root: Optional[FileNode]) -> None:
         self.beginResetModel()
@@ -99,7 +107,7 @@ class FileNodeModel(QAbstractItemModel):
         return len(node.children)
 
     def columnCount(self, parent: QModelIndex = QModelIndex()) -> int:
-        return len(self.COLUMNS)
+        return len(self._COLUMNS_BY_LANG["en"])
 
     def hasChildren(self, parent: QModelIndex = QModelIndex()) -> bool:
         if not parent.isValid():
@@ -135,7 +143,7 @@ class FileNodeModel(QAbstractItemModel):
             if node.error:
                 return QColor(180, 0, 0)
             if node.is_dir:
-                return QColor(30, 60, 160)
+                return QColor(0, 0, 0)
 
         if role == Qt.ItemDataRole.UserRole:
             return node
@@ -172,8 +180,9 @@ class FileNodeModel(QAbstractItemModel):
 
     def headerData(self, section: int, orientation: Qt.Orientation, role: int = Qt.ItemDataRole.DisplayRole):
         if orientation == Qt.Orientation.Horizontal and role == Qt.ItemDataRole.DisplayRole:
-            if 0 <= section < len(self.COLUMNS):
-                return self.COLUMNS[section]
+            columns = self._COLUMNS_BY_LANG[self._language]
+            if 0 <= section < len(columns):
+                return columns[section]
         return None
 
 
@@ -185,6 +194,8 @@ class FileSystemTreeView(QTreeView):
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
         self._node_model = FileNodeModel()
+        self._language = "en"
+        self._theme = "meadow"
         self.setModel(self._node_model)
         self._setup_view()
 
@@ -198,9 +209,27 @@ class FileSystemTreeView(QTreeView):
 
         self.setAlternatingRowColors(True)
         self.setSelectionMode(QAbstractItemView.SelectionMode.SingleSelection)
+        self._apply_selection_style()
         self.setContextMenuPolicy(Qt.ContextMenuPolicy.CustomContextMenu)
         self.customContextMenuRequested.connect(self._show_context_menu)
         self.selectionModel().currentChanged.connect(self._on_current_changed)
+
+    def set_language(self, language: str) -> None:
+        self._language = "zh" if language == "zh" else "en"
+        self._node_model.set_language(self._language)
+
+    def set_theme(self, theme: str) -> None:
+        self._theme = theme
+        self._apply_selection_style()
+
+    def _apply_selection_style(self) -> None:
+        bg = "#2d7ef7" if self._theme == "meadow" else "#4f5fff"
+        self.setStyleSheet(
+            "QTreeView::item:selected {"
+            f"background-color: {bg};"
+            "color: #ffffff;"
+            "}"
+        )
 
     def set_root(self, node: FileNode) -> None:
         self._node_model.set_root(node)
@@ -237,8 +266,8 @@ class FileSystemTreeView(QTreeView):
             return
 
         menu = QMenu(self)
-        open_act = menu.addAction("Open in File Manager")
-        copy_act = menu.addAction("Copy Path")
+        open_act = menu.addAction("在文件管理器打开" if self._language == "zh" else "Open in File Manager")
+        copy_act = menu.addAction("复制路径" if self._language == "zh" else "Copy Path")
         action = menu.exec(self.viewport().mapToGlobal(pos))
 
         if action == open_act:

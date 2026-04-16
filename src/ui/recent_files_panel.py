@@ -86,6 +86,7 @@ class RecentFilesPanel(QWidget):
 
     def __init__(self, parent=None) -> None:
         super().__init__(parent)
+        self._language = "en"
         self._scan_root: Optional[FileNode] = None
         self._current_dir: Optional[FileNode] = None
         # Flat list of all file nodes in the current scan root (cached).
@@ -114,22 +115,26 @@ class RecentFilesPanel(QWidget):
         ctrl_layout.setContentsMargins(0, 0, 0, 0)
         ctrl_layout.setSpacing(6)
 
-        ctrl_layout.addWidget(QLabel("<b>Recent Files</b>"))
+        self._title_label = QLabel("<b>Recent Files</b>")
+        ctrl_layout.addWidget(self._title_label)
         ctrl_layout.addSpacing(8)
 
-        ctrl_layout.addWidget(QLabel("Time:"))
+        self._time_label = QLabel("Time:")
+        ctrl_layout.addWidget(self._time_label)
         self._time_combo = QComboBox()
         self._time_combo.addItems(["Modified Time", "Created Time"])
         self._time_combo.currentIndexChanged.connect(self._refresh)
         ctrl_layout.addWidget(self._time_combo)
 
-        ctrl_layout.addWidget(QLabel("Scope:"))
+        self._scope_label = QLabel("Scope:")
+        ctrl_layout.addWidget(self._scope_label)
         self._scope_combo = QComboBox()
         self._scope_combo.addItems(["Entire Scan Root", "Current Directory"])
         self._scope_combo.currentIndexChanged.connect(self._refresh)
         ctrl_layout.addWidget(self._scope_combo)
 
-        ctrl_layout.addWidget(QLabel("Sort:"))
+        self._sort_label = QLabel("Sort:")
+        ctrl_layout.addWidget(self._sort_label)
         self._sort_combo = QComboBox()
         self._sort_combo.addItems(["By Time (desc)", "By Size (desc)"])
         self._sort_combo.currentIndexChanged.connect(self._refresh)
@@ -165,6 +170,38 @@ class RecentFilesPanel(QWidget):
         self._table.doubleClicked.connect(self._on_double_clicked)
 
         layout.addWidget(self._table)
+
+    def set_language(self, language: str) -> None:
+        self._language = "zh" if language == "zh" else "en"
+        if self._language == "zh":
+            self._title_label.setText("<b>最近文件</b>")
+            self._time_label.setText("时间:")
+            self._scope_label.setText("范围:")
+            self._sort_label.setText("排序:")
+            self._time_combo.setItemText(0, "修改时间")
+            self._time_combo.setItemText(1, "创建时间")
+            self._scope_combo.setItemText(0, "扫描根目录")
+            self._scope_combo.setItemText(1, "当前目录")
+            self._sort_combo.setItemText(0, "按时间(降序)")
+            self._sort_combo.setItemText(1, "按大小(降序)")
+            self._refresh_btn.setText("↺ 刷新")
+            self._refresh_btn.setToolTip("从当前扫描数据重新构建列表")
+            self._table.setHorizontalHeaderLabels(["名称", "完整路径", "大小", "时间"])
+        else:
+            self._title_label.setText("<b>Recent Files</b>")
+            self._time_label.setText("Time:")
+            self._scope_label.setText("Scope:")
+            self._sort_label.setText("Sort:")
+            self._time_combo.setItemText(0, "Modified Time")
+            self._time_combo.setItemText(1, "Created Time")
+            self._scope_combo.setItemText(0, "Entire Scan Root")
+            self._scope_combo.setItemText(1, "Current Directory")
+            self._sort_combo.setItemText(0, "By Time (desc)")
+            self._sort_combo.setItemText(1, "By Size (desc)")
+            self._refresh_btn.setText("↺ Refresh")
+            self._refresh_btn.setToolTip("Rebuild the list from the current scan data")
+            self._table.setHorizontalHeaderLabels(["Name", "Full Path", "Size", "Time"])
+        self._update_count_label(self._table.rowCount())
 
     # ------------------------------------------------------------------
     # Public API
@@ -251,7 +288,13 @@ class RecentFilesPanel(QWidget):
                 item.setFlags(item.flags() & ~Qt.ItemFlag.ItemIsEditable)
                 self._table.setItem(row, col, item)
 
-        self._count_label.setText(f"{len(files):,} file(s)")
+        self._update_count_label(len(files))
+
+    def _update_count_label(self, count: int) -> None:
+        if self._language == "zh":
+            self._count_label.setText(f"{count:,} 个文件")
+        else:
+            self._count_label.setText(f"{count:,} file(s)")
 
     def _path_for_row(self, row: int) -> Optional[str]:
         item = self._table.item(row, 0)
@@ -277,9 +320,9 @@ class RecentFilesPanel(QWidget):
             return
 
         menu = QMenu(self)
-        locate_act = menu.addAction("Locate in Tree")
-        open_act = menu.addAction("Open in File Explorer")
-        copy_act = menu.addAction("Copy Path")
+        locate_act = menu.addAction("在目录树中定位" if self._language == "zh" else "Locate in Tree")
+        open_act = menu.addAction("在资源管理器打开" if self._language == "zh" else "Open in File Explorer")
+        copy_act = menu.addAction("复制路径" if self._language == "zh" else "Copy Path")
 
         action = menu.exec(self._table.viewport().mapToGlobal(pos))
         if action == locate_act:
